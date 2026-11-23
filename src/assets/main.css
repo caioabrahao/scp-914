@@ -188,6 +188,55 @@ button:disabled {
   color: var(--color-text-muted);
 }
 
+.preamble {
+  margin: 0.75rem 0;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.entry-meta {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+.redaction {
+  display: inline-block;
+  min-width: 2em;
+  color: #000;
+  background: #000;
+  line-height: 1.15;
+  user-select: none;
+}
+
+.denial {
+  border: 2px solid #7f1d1d;
+  font-family: "Courier New", monospace;
+  background: #fff7ed;
+}
+
+.denial-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.denied-stamp {
+  padding: 0.2rem 0.45rem;
+  border: 3px double #7f1d1d;
+  color: #7f1d1d;
+  font-weight: 800;
+  transform: rotate(-2deg);
+}
+
+.denial-code {
+  color: #7f1d1d;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+}
+
 @media (max-width: 30rem) {
   .panel {
     padding: 1.25rem;

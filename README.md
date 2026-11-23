@@ -40,3 +40,17 @@ pnpm dev
 ```sh
 pnpm build
 ```
+
+## SCP-914 classification pipeline
+
+The Worker first performs code-only input pre-checks, then caches and validates an AI
+classification, applies deterministic ethics policy, and caches the final structured
+entry in Cloudflare D1. Prompt and cache invalidation is controlled by
+`PROMPT_VERSION` in `server/constants.ts`.
+
+- Edit approved species in `server/constants.ts`.
+- Edit ethics denial variants in `server/denials.ts`.
+- Edit detail-tier and living-subject prompt blocks in `server/ai.ts`.
+- Set `BLOCK_HUMANS_ON_HARSH` in `server/constants.ts`; it defaults to `false`.
+- D1 binding: `DB`; database schema migration:
+  `pnpm wrangler d1 migrations apply scp914 --remote`

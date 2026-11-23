@@ -1,10 +1,33 @@
 import {
+	classifyInput,
+	computeDetailTier,
 	generateScp914Addendum,
-	isScp914Setting,
+	normalizeScp914Setting,
+	makePreamble,
+	validateGeneratedBody,
+	type Scp914Setting,
 } from "./ai";
+import {
+	checkGenerationRateLimit,
+	getClassification,
+	getEntry,
+	setClassification,
+	setEntry,
+} from "./cache";
+import { PROMPT_VERSION } from "./constants";
+import { getDenialEntry } from "./denials";
+import { precheckInput } from "./prechecks";
+import { decidePolicy } from "./policy";
+import type { EntryResponse } from "./types";
+import { sha256 } from "./utils";
 
 export interface Env {
 	AI: Ai;
+	DB: D1Database;
+}
+
+function settingKey(setting: Scp914Setting): string {
+	return setting.toLowerCase();
 }
 
 export default {
@@ -20,41 +43,150 @@ export default {
 		}
 
 		let body: { input?: unknown; setting?: unknown };
-
 		try {
 			body = await request.json();
 		} catch {
 			return Response.json({ error: "Invalid JSON" }, { status: 400 });
 		}
 
-		const input =
-			typeof body.input === "string" ? body.input.trim() : "";
-		const setting =
-			typeof body.setting === "string" ? body.setting : "";
-
-		if (!input) {
-			return Response.json({ error: "Input is required" }, { status: 400 });
+		const rawInput =
+			typeof body.input === "string" ? body.input : "";
+		const precheck = precheckInput(rawInput);
+		if (!precheck.ok) {
+			return Response.json(getDenialEntry(precheck.reason, rawInput));
 		}
 
-		if (!isScp914Setting(setting)) {
-			return Response.json({ error: "Invalid SCP-914 setting" }, { status: 400 });
+		const setting =
+			typeof body.setting === "string"
+				? normalizeScp914Setting(body.setting)
+				: undefined;
+		if (!setting) {
+			return Response.json(
+				getDenialEntry("invalid", precheck.normalized),
+				{ status: 400 },
+			);
 		}
 
 		try {
-			const text = await generateScp914Addendum(env.AI, input, setting);
+			const normalizedHash = await sha256(precheck.normalized);
+			const classificationKey =
+				`cls:${PROMPT_VERSION}:${normalizedHash}`;
+			let classification = await getClassification(env.DB, classificationKey);
 
-			if (!text) {
+			if (!classification) {
+				const ip =
+					request.headers.get("cf-connecting-ip") ??
+					request.headers.get("x-forwarded-for") ??
+					"unknown";
+				if (!(await checkGenerationRateLimit(env.DB, ip))) {
+					return Response.json(
+						getDenialEntry("system_fault", precheck.normalized),
+						{ status: 429 },
+					);
+				}
+
+				classification = await classifyInput(env.AI, precheck.normalized);
+				if (!classification) {
+					return Response.json(
+						getDenialEntry("system_fault", precheck.normalized),
+						{ status: 502 },
+					);
+				}
+				await setClassification(env.DB, classificationKey, classification);
+			}
+
+			const policy = decidePolicy(classification, settingKey(setting));
+			if (!policy.ok) {
 				return Response.json(
-					{ error: "The AI returned an empty response" },
+					getDenialEntry(policy.reason, classification.canonical || precheck.normalized),
+				);
+			}
+
+			const canonicalHash = await sha256(classification.canonical);
+			const entryKey =
+				`entry:${PROMPT_VERSION}:${canonicalHash}:${settingKey(setting)}`;
+			const cachedEntry = await getEntry(env.DB, entryKey);
+			if (cachedEntry) {
+				const entry: EntryResponse =
+					cachedEntry.kind === "entry"
+						? { ...cachedEntry, cached: true }
+						: cachedEntry;
+				return Response.json(entry);
+			}
+
+			const ip =
+				request.headers.get("cf-connecting-ip") ??
+				request.headers.get("x-forwarded-for") ??
+				"unknown";
+			if (!(await checkGenerationRateLimit(env.DB, ip))) {
+				return Response.json(
+					getDenialEntry("system_fault", classification.canonical),
+					{ status: 429 },
+				);
+			}
+
+			const tier = computeDetailTier(
+				classification.canonical,
+				classification.interest,
+			);
+			const preamble = makePreamble(
+				policy.rules,
+				classification,
+				classification.canonical,
+				setting,
+			);
+
+			let body = await generateScp914Addendum(
+				env.AI,
+				classification.canonical,
+				setting,
+				policy.rules,
+				tier,
+				classification,
+			);
+
+			if (
+				!body ||
+				(policy.rules !== "standard" &&
+					!validateGeneratedBody(body, policy.rules, tier))
+			) {
+				body = await generateScp914Addendum(
+					env.AI,
+					classification.canonical,
+					setting,
+					policy.rules,
+					tier,
+					classification,
+					true,
+				);
+			}
+
+			if (
+				!body ||
+				(policy.rules !== "standard" &&
+					!validateGeneratedBody(body, policy.rules, tier))
+			) {
+				return Response.json(
+					getDenialEntry("system_fault", classification.canonical),
 					{ status: 502 },
 				);
 			}
 
-			return Response.json({ response: text });
+			const entry: EntryResponse = {
+				kind: "entry",
+				canonical: classification.canonical,
+				setting: settingKey(setting),
+				tier,
+				preamble,
+				body,
+				cached: false,
+			};
+			await setEntry(env.DB, entryKey, entry);
+			return Response.json(entry);
 		} catch (error) {
-			console.error("AI request failed", error);
+			console.error("SCP-914 request failed", error);
 			return Response.json(
-				{ error: "Unable to get a response from the AI" },
+				getDenialEntry("system_fault", rawInput),
 				{ status: 502 },
 			);
 		}

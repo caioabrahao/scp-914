@@ -14,6 +14,13 @@
 		"enabled": true
 	},
 	"upload_source_maps": true,
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "scp914",
+			"database_id": "5d48069f-c169-4597-96a4-85a5966133bc"
+		}
+	],
 	"ai": {
 		"binding": "AI"
 	}
