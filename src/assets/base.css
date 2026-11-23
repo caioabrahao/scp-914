@@ -32,8 +32,9 @@
 
   --color-heading: var(--vt-c-text-light-1);
   --color-text: var(--vt-c-text-light-1);
-
-  --section-gap: 160px;
+  --color-text-muted: rgba(60, 60, 60, 0.66);
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -47,6 +48,7 @@
 
     --color-heading: var(--vt-c-text-dark-1);
     --color-text: var(--vt-c-text-dark-2);
+    --color-text-muted: var(--vt-c-text-dark-2);
   }
 }
 
@@ -59,6 +61,7 @@
 }
 
 body {
+  min-width: 320px;
   min-height: 100vh;
   color: var(--color-text);
   background: var(--color-background);
