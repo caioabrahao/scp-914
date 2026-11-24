@@ -25,6 +25,16 @@ entry:{PROMPT_VERSION}:{sha256(canonical)}:{setting}
 
 It stores the complete entry response. Cache hits set `cached: true`.
 
+The `canonical_experiments` table stores the immutable first-experimented timestamp
+per canonical object name. Entry rows also retain this timestamp in
+`first_experimented_at` and their JSON value.
+
+The `document_numbers` table assigns a stable increasing document number to each
+entry cache key. The number is stored in `entries.document_number` and the entry JSON.
+
+The entries table also feeds the read-only addendum archive. List responses expose
+entry summaries while detail requests read the full cached JSON by `cache_key`.
+
 ## Prompt version
 
 `PROMPT_VERSION` in [server/constants.ts](../server/constants.ts) invalidates old

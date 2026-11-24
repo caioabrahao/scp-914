@@ -34,5 +34,7 @@ export type EntryResponse =
 			preamble?: string;
 			body: string;
 			cached: boolean;
+			firstExperimentedAt: number;
+			documentNumber: number;
 	  }
 	| { kind: "denial"; reason: DenialReason; text: string };

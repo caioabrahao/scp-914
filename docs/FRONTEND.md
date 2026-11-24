@@ -24,7 +24,23 @@ The interface offers:
 - a five-position dial for Rough, Coarse, 1:1, Fine, and Very Fine;
 - a Run SCP-914 button.
 
+Navigation is provided by a persistent left sidebar. The testing view uses two
+columns: controls on the left and the generated document or denial feedback on the
+right.
+
 The frontend sends the dial name and input text as JSON to `POST /api/`.
+
+## Views
+
+- `/` renders the SCP-914 simulator.
+- `/addendums` renders the addendum archive.
+
+The archive view loads saved entry summaries from `GET /api/addendums`, then loads
+the full selected entry through `GET /api/addendums/:cacheKey`.
+The archive uses a searchable sidebar for record selection and a reader pane for the
+selected document. The API detail tier is internal and is not rendered to users.
+Document headings use `Document 914/<number> - Experiment Log`, with the number padded
+to at least three digits.
 
 ## Markdown rendering
 

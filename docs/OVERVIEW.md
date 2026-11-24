@@ -11,6 +11,7 @@ dial setting into a deterministic, fictional SCP-style test log.
 - **Workers AI:** first classifies the input, then generates a structured addendum.
 - **Cloudflare D1:** caches classifications and entries and provides a basic IP-based
   uncached-generation limit.
+- **Vue archive view:** browses saved D1 entries and renders selected addendums.
 
 ## High-level flow
 

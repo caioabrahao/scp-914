@@ -61,3 +61,5 @@ Detailed architecture and maintenance guidance is available in
 [docs/README.md](docs/README.md). Start with the
 [architecture overview](docs/OVERVIEW.md) and
 [request pipeline](docs/REQUEST_PIPELINE.md).
+For setup and Cloudflare development instructions, use the
+[developer reference](docs/DEVELOPER_REFERENCE.md).

@@ -11,6 +11,10 @@ import {
 	checkGenerationRateLimit,
 	getClassification,
 	getEntry,
+	getEntryByKey,
+	getOrCreateFirstExperimentedAt,
+	getOrCreateDocumentNumber,
+	listEntries,
 	setClassification,
 	setEntry,
 } from "./cache";
@@ -33,6 +37,54 @@ function settingKey(setting: Scp914Setting): string {
 export default {
 	async fetch(request, env): Promise<Response> {
 		const url = new URL(request.url);
+
+		if (
+			request.method === "GET" &&
+			url.pathname === "/api/addendums"
+		) {
+			try {
+				const limit = Math.min(
+					50,
+					Math.max(1, Number(url.searchParams.get("limit") ?? "50")),
+				);
+				const offset = Math.max(
+					0,
+					Number(url.searchParams.get("offset") ?? "0"),
+				);
+				const items = await listEntries(env.DB, limit, offset);
+				return Response.json({ items });
+			} catch (error) {
+				console.error("Unable to list addendums", error);
+				return Response.json(
+					{ error: "Unable to load saved addendums" },
+					{ status: 500 },
+				);
+			}
+		}
+
+		if (
+			request.method === "GET" &&
+			url.pathname.startsWith("/api/addendums/")
+		) {
+			try {
+				const encodedKey = url.pathname.slice("/api/addendums/".length);
+				const key = decodeURIComponent(encodedKey);
+				const entry = await getEntryByKey(env.DB, key);
+				if (!entry) {
+					return Response.json(
+						{ error: "Addendum not found" },
+						{ status: 404 },
+					);
+				}
+				return Response.json(entry);
+			} catch (error) {
+				console.error("Unable to load addendum", error);
+				return Response.json(
+					{ error: "Unable to load addendum" },
+					{ status: 400 },
+				);
+			}
+		}
 
 		if (url.pathname !== "/api/" && url.pathname !== "/api") {
 			return new Response("Not found", { status: 404 });
@@ -107,9 +159,23 @@ export default {
 				`entry:${PROMPT_VERSION}:${canonicalHash}:${settingKey(setting)}`;
 			const cachedEntry = await getEntry(env.DB, entryKey);
 			if (cachedEntry) {
+				const firstExperimentedAt =
+					await getOrCreateFirstExperimentedAt(
+						env.DB,
+						cachedEntry.kind === "entry"
+							? cachedEntry.canonical
+							: classification.canonical,
+					);
 				const entry: EntryResponse =
 					cachedEntry.kind === "entry"
-						? { ...cachedEntry, cached: true }
+						? {
+							...cachedEntry,
+							cached: true,
+							firstExperimentedAt:
+								cachedEntry.firstExperimentedAt < firstExperimentedAt
+									? cachedEntry.firstExperimentedAt
+									: firstExperimentedAt,
+						}
 						: cachedEntry;
 				return Response.json(entry);
 			}
@@ -180,6 +246,14 @@ export default {
 				preamble,
 				body,
 				cached: false,
+				firstExperimentedAt: await getOrCreateFirstExperimentedAt(
+					env.DB,
+					classification.canonical,
+				),
+				documentNumber: await getOrCreateDocumentNumber(
+					env.DB,
+					entryKey,
+				),
 			};
 			await setEntry(env.DB, entryKey, entry);
 			return Response.json(entry);

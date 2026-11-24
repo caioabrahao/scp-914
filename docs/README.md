@@ -3,6 +3,8 @@
 This directory describes the current SCP-914 simulator implementation for developers
 and AI coding agents.
 
+- [Developer reference](./DEVELOPER_REFERENCE.md) - setup, Cloudflare integrations,
+  development commands, deployment, troubleshooting, and extension points.
 - [Overview](./OVERVIEW.md) - system purpose and high-level architecture.
 - [Request pipeline](./REQUEST_PIPELINE.md) - every layer from user input to addendum.
 - [Frontend](./FRONTEND.md) - Vue interface, API calls, Markdown, and redactions.
