@@ -58,4 +58,6 @@ entry in Cloudflare D1. Prompt and cache invalidation is controlled by
 ## Project documentation
 
 Detailed architecture and maintenance guidance is available in
-[docs/README.md](docs/README.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+[docs/README.md](docs/README.md). Start with the
+[architecture overview](docs/OVERVIEW.md) and
+[request pipeline](docs/REQUEST_PIPELINE.md).
