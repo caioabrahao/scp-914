@@ -54,3 +54,8 @@ entry in Cloudflare D1. Prompt and cache invalidation is controlled by
 - Set `BLOCK_HUMANS_ON_HARSH` in `server/constants.ts`; it defaults to `false`.
 - D1 binding: `DB`; database schema migration:
   `pnpm wrangler d1 migrations apply scp914 --remote`
+
+## Project documentation
+
+Detailed architecture and maintenance guidance is available in
+[docs/README.md](docs/README.md) and [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
