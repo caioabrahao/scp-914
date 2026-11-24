@@ -32,6 +32,12 @@ per canonical object name. Entry rows also retain this timestamp in
 The `document_numbers` table assigns a stable increasing document number to each
 entry cache key. The number is stored in `entries.document_number` and the entry JSON.
 
+The `canonical_input_counts` table tracks valid, classified submissions by canonical
+name. It is read dynamically for archive responses, so the count is current even when
+the addendum itself is served from the entry cache. The migration seeds existing
+canonical names from their saved entry records; earlier cache-hit submissions were not
+tracked and cannot be reconstructed.
+
 The entries table also feeds the read-only addendum archive. List responses expose
 entry summaries while detail requests read the full cached JSON by `cache_key`.
 

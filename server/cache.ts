@@ -102,6 +102,18 @@ export async function getOrCreateFirstExperimentedAt(
 	return row?.first_experimented_at ?? now;
 }
 
+export async function recordCanonicalInput(
+	db: D1Database,
+	canonical: string,
+): Promise<void> {
+	await db
+		.prepare(
+			"INSERT INTO canonical_input_counts (canonical, input_count) VALUES (?, 1) ON CONFLICT(canonical) DO UPDATE SET input_count = input_count + 1",
+		)
+		.bind(canonical)
+		.run();
+}
+
 export async function getOrCreateDocumentNumber(
 	db: D1Database,
 	entryKey: string,
@@ -147,6 +159,7 @@ export type ArchiveItem = {
 	cachedAt: number;
 	firstExperimentedAt: number;
 	documentNumber: number;
+	inputCount: number;
 };
 
 export async function listEntries(
@@ -156,7 +169,13 @@ export async function listEntries(
 ): Promise<ArchiveItem[]> {
 	const result = await db
 		.prepare(
-			"SELECT cache_key, value, cached_at, first_experimented_at, document_number FROM entries ORDER BY cached_at DESC LIMIT ? OFFSET ?",
+			`SELECT entries.cache_key, entries.value, entries.cached_at,
+				entries.first_experimented_at, entries.document_number,
+				COALESCE(canonical_input_counts.input_count, 0) AS input_count
+			FROM entries
+			LEFT JOIN canonical_input_counts
+				ON canonical_input_counts.canonical = json_extract(entries.value, '$.canonical')
+			ORDER BY entries.cached_at DESC LIMIT ? OFFSET ?`,
 		)
 		.bind(limit, offset)
 		.all<{
@@ -165,6 +184,7 @@ export async function listEntries(
 			cached_at: number;
 			first_experimented_at: number | null;
 			document_number: number | null;
+			input_count: number;
 		}>();
 
 	const items: Array<ArchiveItem | null> = await Promise.all(
@@ -188,6 +208,7 @@ export async function listEntries(
 						entry.firstExperimentedAt ??
 						row.cached_at,
 					documentNumber,
+					inputCount: row.input_count,
 				};
 			} catch {
 				return null;
@@ -201,10 +222,16 @@ export async function listEntries(
 export async function getEntryByKey(
 	db: D1Database,
 	key: string,
-): Promise<EntryResponse | null> {
+): Promise<(Extract<EntryResponse, { kind: "entry" }> & { inputCount: number }) | null> {
 	const row = await db
 		.prepare(
-			"SELECT value, first_experimented_at, cached_at, document_number FROM entries WHERE cache_key = ?",
+			`SELECT entries.value, entries.first_experimented_at, entries.cached_at,
+				entries.document_number,
+				COALESCE(canonical_input_counts.input_count, 0) AS input_count
+			FROM entries
+			LEFT JOIN canonical_input_counts
+				ON canonical_input_counts.canonical = json_extract(entries.value, '$.canonical')
+			WHERE entries.cache_key = ?`,
 		)
 		.bind(key)
 		.first<{
@@ -212,6 +239,7 @@ export async function getEntryByKey(
 			first_experimented_at: number | null;
 			cached_at: number;
 			document_number: number | null;
+			input_count: number;
 		}>();
 	if (!row) return null;
 
@@ -229,6 +257,7 @@ export async function getEntryByKey(
 				entry.firstExperimentedAt ??
 				row.cached_at,
 			documentNumber,
+			inputCount: row.input_count,
 		};
 	} catch {
 		return null;

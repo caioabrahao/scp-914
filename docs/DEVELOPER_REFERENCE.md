@@ -12,6 +12,7 @@ The project is a Vue 3 application served by a Cloudflare Worker:
 - The Worker in `server/index.ts` handles `/api` requests.
 - Workers AI generates classifications and addendum entries.
 - Cloudflare D1 caches classifications and entries and stores rate-limit state.
+- A D1 counter tracks valid classified inputs per canonical name for the archive.
 
 The main browser views are:
 

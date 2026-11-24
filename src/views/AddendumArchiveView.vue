@@ -13,6 +13,7 @@ type EntryResponse = {
   cached: boolean
   firstExperimentedAt: number
   documentNumber: number
+  inputCount: number
 }
 
 type ArchiveItem = {
@@ -24,6 +25,7 @@ type ArchiveItem = {
   cachedAt: number
   firstExperimentedAt: number
   documentNumber: number
+  inputCount: number
 }
 
 const items = ref<ArchiveItem[]>([])
@@ -140,6 +142,7 @@ onMounted(loadArchive)
             <strong>{{ formatDocumentNumber(item.documentNumber) }}</strong>
             <span>{{ item.canonical }}</span>
             <span>{{ item.setting }}</span>
+            <span>Times input: {{ item.inputCount }}</span>
             <time :datetime="new Date(item.firstExperimentedAt).toISOString()">
               First experimented: {{ formatDate(item.firstExperimentedAt) }}
             </time>
@@ -156,6 +159,9 @@ onMounted(loadArchive)
             </p>
             <p class="entry-meta">
               First experimented: {{ formatDate(selected.firstExperimentedAt) }}
+            </p>
+            <p class="entry-meta">
+              Times input: {{ selected.inputCount }}
             </p>
             <p v-if="selected.preamble" class="preamble">
               {{ selected.preamble }}

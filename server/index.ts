@@ -15,6 +15,7 @@ import {
 	getOrCreateFirstExperimentedAt,
 	getOrCreateDocumentNumber,
 	listEntries,
+	recordCanonicalInput,
 	setClassification,
 	setEntry,
 } from "./cache";
@@ -145,6 +146,10 @@ export default {
 					);
 				}
 				await setClassification(env.DB, classificationKey, classification);
+			}
+
+			if (classification.valid && classification.canonical) {
+				await recordCanonicalInput(env.DB, classification.canonical);
 			}
 
 			const policy = decidePolicy(classification, settingKey(setting));
