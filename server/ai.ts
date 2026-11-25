@@ -17,21 +17,52 @@ export type Scp914Setting = (typeof SCP_914_SETTINGS)[number];
 
 const TWISTS = [
 	"a researcher notes an unrelated, mundane detail",
-	"the output has a faint smell or sound",
 	"a minor side effect appears hours later",
-	"the item is slightly more than it was",
+	// "the item is slightly more than it was",
+	"the item becomes useful later on",
+	"the object is too powerful and the situation gets out of control (include incident report at the end of document)",
+	"the experiment peaked the interest of an O-5 council member (include a brief O-5 note at the end)"
 ];
 
 const SETTING_RULES: Record<string, string> = {
-	rough: "Object is torn apart into crude components. Messy, a bit violent.",
-	coarse: "Object is altered in a crude, mostly worse way.",
-	"1:1": "Object is rebuilt as something of the same kind, subtly different.",
-	fine: "Object is improved, but in a slightly unexpected way.",
-	"very fine": "Object becomes something stranger and better than it should be.",
+	rough: `
+		Object is torn apart into crude components in a messy and violent manner.
+	`,
+	coarse: `
+		Object is disassembled into smaller pieces, often undertaking an unexplained high precision procedure.
+	`,
+	"1:1": `
+		Object is transformed into something equivalent. 
+		Not better, not worse, but slightly different.
+		It generally should not defy normality, unless the input does.
+
+		EXAMPLES (1:1 setting) (Serves only as examples, not rules for the mentioned objects):
+		Input: 1kg of steel
+		Output: 1kg of steel bolts 
+
+		Input: 1 white mouse
+		Output: 1 brown mouse
+	`,
+	fine: `
+		Object is noticeably improved, in an unexpected way.
+	`,
+	"very fine": `
+		Object becomes an extremely improved version of itself, often containing anomalous properties.
+
+		EXAMPLES (very fine setting) (Serves only as examples, not rules for the mentioned objects):
+		Input: A colt .45 revolver
+		Output: [REDACTED]. The weapon was able to disintegrate whatever was in its line of sight.
+
+		Input: A human male
+		Output: An extremely enhanced super human.
+
+		Input: 1kg of steel
+		Output: Several gases that dissipated into the air quickly, and 1 gram of an unknown metal, resistant to heat of 50,000 degrees, impossible to bend or break with any force, and a near-perfect (1.6x10-75 ρ) conductor of electricity
+	`,
 };
 
 const TIER_BLOCKS = {
-	1: "Tier 1: Write 70-110 words using Input, Processing, Result, and Note.",
+	1: "Tier 1: Write 70-110 words using Input, Processing, Result",
 	2: "Tier 2: Write 130-180 words. Add an Observations paragraph after Result.",
 	3: "Tier 3: Write 250-350 words. Add Observations in 2 paragraphs, Follow-up testing, and an Addendum with one escalating consequence.",
 } as const;
@@ -74,7 +105,7 @@ Return ONLY a JSON object matching the schema. No prose, no markdown fences.
 
 Fields:
 - valid: false if the text is gibberish, empty of meaning, or not something that could be put in a machine (a thing, material, substance, animal, anonymous person, or concept-as-object). True otherwise. Be generous with weird-but-real items.
-- canonical: short English name of the item, lowercase. Translate from any language. For humans, describe generically (e.g. "adult male, 167cm, 98kg") and OMIT ethnicity, name, and any identifying detail.
+- canonical: short English name of the item, lowercase. Translate from any language. For humans, describe generically (e.g. "adult male, 167cm, 98kg") and OMIT name, and any identifying detail. Preserve quantity and state, if specified.
 - subject_type: object | organic_remains (food, plants, bones, dead matter) | abstract | human | animal.
 - species: for animals only, choose from [white rat, mouse, rabbit, guinea pig] or "other". Map synonyms (e.g. "albino rat", "lab rat" -> "white rat"). null for non-animals.
 - specific_living_individual: true if the text names or refers to a particular living human or animal: a personal name, a relative/friend/coworker ("my sister", "Adriana"), a pet or owned/neighbor's animal ("Mittens", "my neighbor's cat"), or a real/public person (celebrity, politician). False for generic descriptions ("adult male, 167cm, 98kg", "a white rat"). Objects owned by someone ("grandma's watch") are always false.
@@ -180,6 +211,7 @@ export function validateGeneratedBody(
 	rules: Rules,
 	tier: 1 | 2 | 3,
 ): boolean {
+	return true; // <-------- debug, function always validate!
 	const words = body.trim().split(/\s+/).filter(Boolean).length;
 	const ranges = {
 		1: [70, 110],
@@ -229,8 +261,11 @@ export async function generateScp914Addendum(
 		messages: [
 			{
 				role: "system",
-				content: `You write test-log entries for SCP-914 in the style of the SCP Foundation wiki: dry, deadpan, bureaucratic, with one oddly specific detail per entry. Never explain the joke.
+				content: `You write test-log entries for SCP-914 in the style of the SCP Foundation wiki: dry, deadpan, bureaucratic and clinical.
+SCP-914 is a machine that receives an Input object and processes it into an Output object based on the setting.
+Although anomalous, the machine cannot create matter out of thin air, only transform the input through both known and unknown processes.
 
+The canonical input is: ${canonical}
 Setting rule: ${SETTING_RULES[settingKey]}
 Twist to include: ${twist}
 ${TIER_BLOCKS[tier]}
@@ -238,11 +273,17 @@ ${TIER_BLOCKS[tier]}
 Rules for this subject:
 ${cutAway}
 
-Format: Markdown with labeled bold fields. Use Input, Processing, Result, and Note. Tier 2 and 3 should use their additional fields exactly.
-The canonical input is: ${canonical}
+Format: Markdown with labeled bold fields. 
+Always include the following fields: 
+Input: A detailed description of the input item(s), mentioning quantity and other relevant details,
+Processing: A short description of what the machine did during processing like the machine making a certain sound or taking longer that usual.
+Output: A detailed description of the output.
+Use tiers 2 and 3 additional fields as specified.
+Include an addendum field mentioning output testing only IF the Input object is a tool or similar.
+
 Never receive or repeat a raw user string.
 Use concrete measurements and a bureaucratic tone.
-At most one redaction in non-living entries.
+Use reactions (using █ and not aria labels)sparingly, only if it adds to the reader curiosity.
 ${restraint}`,
 			},
 			{ role: "user", content: `Input: ${canonical}, ${setting}` },

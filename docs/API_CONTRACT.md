@@ -71,7 +71,8 @@ It returns entry summaries from D1:
       "preamble": "optional preamble",
       "cachedAt": 1700000000000,
       "firstExperimentedAt": 1699000000000,
-      "documentNumber": 42
+      "documentNumber": 42,
+      "inputCount": 3
     }
   ]
 }
