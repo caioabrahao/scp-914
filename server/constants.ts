@@ -1,4 +1,4 @@
-export const PROMPT_VERSION = "scp914-classification-v1";
+export const PROMPT_VERSION = "scp914-classification-v2";
 export const BLOCK_HUMANS_ON_HARSH = false;
 
 export const APPROVED_SPECIES = [
